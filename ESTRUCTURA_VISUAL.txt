@@ -1,0 +1,147 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                    ESTRUCTURA DEL PROYECTO REFACTORIZADO                   ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+📦 Proyecto Itti - Google Drive & Gmail Manager
+│
+├── 📁 config/                          ⚙️ CONFIGURACIÓN
+│   ├── __init__.py                     └─ Exports: AppConfig, AuthMode, GoogleScopes
+│   └── settings.py                     └─ Configuración desde .env
+│       ├── AuthMode (Enum)             └─ PERSONAL / WORKSPACE
+│       ├── GoogleScopes (Class)        └─ URLs de scopes
+│       └── AppConfig (Settings)        └─ Variables de entorno
+│
+├── 📁 models/                          📋 MODELOS DE DATOS
+│   ├── __init__.py                     └─ Exports: Cliente, ArchivoCliente, etc.
+│   └── schemas.py                      └─ Modelos Pydantic
+│       ├── Cliente                     └─ Datos de cliente
+│       ├── ArchivoCliente              └─ Archivos para subir
+│       ├── EmailAttachment             └─ Adjuntos de email
+│       ├── EmailMessage                └─ Mensajes de correo
+│       ├── DriveFileChange             └─ Cambios en Drive
+│       └── ExcelData                   └─ Datos de Excel
+│
+├── 📁 services/                        🔧 SERVICIOS DE GOOGLE API
+│   ├── __init__.py                     └─ Exports: Auth, Drive, Gmail
+│   ├── auth.py                         └─ GoogleAuthService
+│   │   └── get_credentials()           └─ Autenticación con Service Account
+│   ├── drive.py                        └─ GoogleDriveService
+│   │   ├── crear_carpeta()             └─ Crear carpetas
+│   │   ├── subir_archivo()             └─ Subir archivos
+│   │   ├── crear_carpeta_con_archivos()└─ Crear y subir en un paso
+│   │   ├── buscar_carpeta_por_nombre() └─ Buscar carpetas
+│   │   ├── listar_archivos_excel()     └─ Listar Excel
+│   │   ├── descargar_archivo()         └─ Descargar a disco
+│   │   ├── leer_excel_desde_drive()    └─ Leer Excel en memoria
+│   │   └── actualizar_excel_en_drive() └─ Actualizar Excel
+│   └── gmail.py                        └─ GmailService
+│       ├── buscar_correos()            └─ Buscar con filtros
+│       ├── marcar_como_leido()         └─ Marcar leído
+│       └── extraer_excel_adjuntos()    └─ Extraer adjuntos Excel
+│
+├── 📁 jobs/                            🤖 JOBS AUTOMATIZADOS
+│   ├── __init__.py                     └─ Exports: EmailProcessor, DriveMonitor
+│   ├── email_processor.py              └─ EmailProcessorJob
+│   │   ├── procesar_correos_nuevos()   └─ Procesar correos una vez
+│   │   └── ejecutar_loop()             └─ Loop continuo
+│   └── drive_monitor.py                └─ DriveMonitorJob
+│       ├── procesar_cambios()          └─ Detectar cambios una vez
+│       └── ejecutar_loop()             └─ Loop continuo
+│
+├── 📁 utils/                           🛠️ UTILIDADES
+│   ├── __init__.py                     └─ Exports: PlaceholderGenerator
+│   ├── placeholder.py                  └─ PlaceholderGenerator
+│   │   ├── crear_imagen_placeholder()  └─ Generar imágenes de prueba
+│   │   └── crear_excel_placeholder()   └─ Generar Excel de prueba
+│   └── callbacks.py                    └─ Callbacks de ejemplo
+│       ├── ejemplo_callback_validacion()       └─ Validar datos
+│       ├── ejemplo_callback_actualizar_bd()    └─ Actualizar BD
+│       └── ejemplo_callback_generar_reporte()  └─ Generar reportes
+│
+├── 📁 examples/                        📚 EJEMPLOS DE USO
+│   ├── __init__.py
+│   ├── ejemplo_1_carpeta_placeholders.py       └─ Crear carpeta con archivos
+│   ├── ejemplo_2_email_a_drive.py              └─ Procesar correos
+│   ├── ejemplo_3_monitorear_validar.py         └─ Monitorear cambios
+│   ├── ejemplo_4_leer_actualizar_excel.py      └─ Leer/actualizar Excel
+│   └── ejemplo_5_flujo_completo.py             └─ Flujo completo integrado
+│
+├── 📄 main.py                          📜 ARCHIVO ORIGINAL (sin cambios)
+├── 📄 main_refactored.py               🚀 NUEVO PUNTO DE ENTRADA
+├── 📄 verify_structure.py              ✅ Script de verificación
+│
+├── 📖 README.md                        📚 Documentación principal
+├── 📖 MIGRATION_GUIDE.md               🔄 Guía de migración
+├── 📖 PROYECTO_REFACTORIZADO.md        📋 Resumen de refactorización
+├── 📖 ESTRUCTURA_VISUAL.txt            🎨 Este archivo
+│
+├── 🔧 .env                             ⚙️ Variables de entorno
+├── 🔧 .gitignore                       🚫 Archivos ignorados
+├── 🔧 requirements.txt                 📦 Dependencias
+└── 🔑 service-account.json             🔐 Credenciales (no en git)
+
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                              FLUJO DE DATOS                                ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+1️⃣ CONFIGURACIÓN
+   .env → AppConfig → GoogleAuthService → Credentials
+
+2️⃣ SERVICIOS
+   Credentials → GoogleDriveService / GmailService
+
+3️⃣ JOBS
+   Services → EmailProcessorJob / DriveMonitorJob → Callbacks
+
+4️⃣ EJEMPLOS
+   Config + Services + Jobs → Ejemplos ejecutables
+
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                           IMPORTS PRINCIPALES                              ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+from config import AppConfig, AuthMode, GoogleScopes
+from models import Cliente, ArchivoCliente, EmailMessage, ExcelData
+from services import GoogleAuthService, GoogleDriveService, GmailService
+from jobs import EmailProcessorJob, DriveMonitorJob
+from utils import PlaceholderGenerator
+from utils.callbacks import ejemplo_callback_validacion
+
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                          ESTADÍSTICAS DEL PROYECTO                         ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+📊 Antes:  1 archivo  (main.py)           ~1500 líneas
+📊 Ahora:  20+ archivos organizados       ~1500 líneas (distribuidas)
+
+📁 Carpetas:     6 (config, models, services, jobs, utils, examples)
+📄 Módulos:      13 archivos .py principales
+📚 Ejemplos:     5 ejemplos completos
+📖 Docs:         4 archivos de documentación
+
+✨ Mejoras:
+   ✅ Modularidad
+   ✅ Mantenibilidad
+   ✅ Testabilidad
+   ✅ Escalabilidad
+   ✅ Reutilización
+   ✅ Profesionalismo
+
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                            PRÓXIMOS PASOS                                  ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+1. ✅ Verificar estructura:  python verify_structure.py
+2. ⚙️  Configurar .env con tus credenciales
+3. 🚀 Ejecutar ejemplo:      python examples/ejemplo_1_carpeta_placeholders.py
+4. 📖 Leer MIGRATION_GUIDE.md para migrar tu código
+5. 🎨 Personalizar callbacks en utils/callbacks.py
+
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                 ¡LISTO!                                    ║
+╚════════════════════════════════════════════════════════════════════════════╝

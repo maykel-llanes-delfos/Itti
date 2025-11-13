@@ -1,0 +1,18 @@
+# Google APIs
+google-api-python-client>=2.100.0
+google-auth>=2.23.0
+
+# Validación de datos
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Procesamiento de Excel
+openpyxl>=3.1.2
+pandas>=2.1.0
+xlrd>=2.0.1
+
+# Procesamiento de imágenes (opcional, para placeholders)
+Pillow>=10.0.0
+
+# Utilidades
+python-dotenv>=1.0.0
