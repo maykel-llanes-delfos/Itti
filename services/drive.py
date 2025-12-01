@@ -25,6 +25,7 @@ class GoogleDriveService:
     def __init__(self, credentials, config: AppConfig):
         self.service = build("drive", "v3", credentials=credentials)
         self.config = config
+        self._carpetas_cache = {}  # Cache de carpetas {nombre: folder_id}
 
     def crear_carpeta(
         self, nombre_carpeta: str, parent_id: Optional[str] = None
@@ -406,3 +407,142 @@ class GoogleDriveService:
         except HttpError as error:
             print(f"❌ Error actualizando Excel: {error}")
             raise
+
+    def obtener_o_crear_carpeta(
+        self, nombre_carpeta: str, parent_id: Optional[str] = None
+    ) -> str:
+        """
+        Obtiene el ID de una carpeta existente o la crea si no existe
+
+        Args:
+            nombre_carpeta: Nombre de la carpeta
+            parent_id: ID de la carpeta padre (opcional)
+
+        Returns:
+            ID de la carpeta (existente o nueva)
+        """
+        # Buscar carpeta existente
+        folder_id = self.buscar_carpeta_por_nombre(nombre_carpeta, parent_id)
+
+        if folder_id:
+            print(f"✅ Usando carpeta existente: {nombre_carpeta}")
+            return folder_id
+
+        # Si no existe, crearla
+        print(f"📁 Creando nueva carpeta: {nombre_carpeta}")
+        return self.crear_carpeta(nombre_carpeta, parent_id)
+
+    def listar_todas_carpetas(
+        self, parent_id: Optional[str] = None, actualizar_cache: bool = True
+    ) -> Dict[str, str]:
+        """
+        Lista todas las carpetas en un directorio y actualiza el cache
+
+        Args:
+            parent_id: ID de la carpeta padre (opcional)
+            actualizar_cache: Si True, actualiza el cache con los resultados
+
+        Returns:
+            Diccionario {nombre_carpeta: folder_id}
+        """
+        query = f"mimeType='application/vnd.google-apps.folder' and " f"trashed=false"
+
+        if parent_id:
+            query += f" and '{parent_id}' in parents"
+        elif self.config.drive_root_folder_id:
+            query += f" and '{self.config.drive_root_folder_id}' in parents"
+
+        try:
+            carpetas = {}
+            page_token = None
+
+            while True:
+                results = (
+                    self.service.files()
+                    .list(
+                        q=query,
+                        spaces="drive",
+                        fields="nextPageToken, files(id, name)",
+                        pageToken=page_token,
+                        pageSize=100,
+                    )
+                    .execute()
+                )
+
+                files = results.get("files", [])
+
+                for file in files:
+                    carpetas[file["name"]] = file["id"]
+
+                    # Actualizar cache
+                    if actualizar_cache:
+                        cache_key = (
+                            f"{parent_id or self.config.drive_root_folder_id}:"
+                            f"{file['name']}"
+                        )
+                        self._carpetas_cache[cache_key] = file["id"]
+
+                page_token = results.get("nextPageToken")
+                if not page_token:
+                    break
+
+            print(f"📂 Encontradas {len(carpetas)} carpetas")
+            return carpetas
+
+        except HttpError as error:
+            print(f"❌ Error listando carpetas: {error}")
+            return {}
+
+    def procesar_clientes_desde_excel(
+        self,
+        excel_data: "ExcelData",
+        columna_nombre: str = "Nombre",
+        crear_carpetas: bool = True,
+        parent_id: Optional[str] = None,
+    ) -> Dict[str, str]:
+        """
+        Procesa clientes desde Excel y crea/obtiene sus carpetas
+
+        Args:
+            excel_data: Datos del Excel
+            columna_nombre: Nombre de la columna con nombres de clientes
+            crear_carpetas: Si True, crea carpetas para clientes nuevos
+            parent_id: ID de carpeta padre (opcional)
+
+        Returns:
+            Diccionario {nombre_cliente: folder_id}
+        """
+        print(f"\n📊 Procesando clientes desde Excel: {excel_data.file_name}")
+
+        # Obtener todos los nombres de clientes (sin duplicados)
+        clientes = set()
+
+        for sheet_name, rows in excel_data.data.items():
+            for row in rows:
+                if columna_nombre in row and row[columna_nombre]:
+                    nombre = str(row[columna_nombre]).strip()
+                    if nombre:
+                        clientes.add(nombre)
+
+        print(f"📋 Encontrados {len(clientes)} clientes únicos")
+
+        # Listar carpetas existentes para optimizar búsquedas
+        print("\n🔍 Listando carpetas existentes...")
+        self.listar_todas_carpetas(parent_id, actualizar_cache=True)
+
+        # Procesar cada cliente
+        carpetas_clientes = {}
+
+        for i, nombre_cliente in enumerate(sorted(clientes), 1):
+            print(f"\n[{i}/{len(clientes)}] Procesando: {nombre_cliente}")
+
+            if crear_carpetas:
+                folder_id = self.obtener_o_crear_carpeta(nombre_cliente, parent_id)
+                carpetas_clientes[nombre_cliente] = folder_id
+            else:
+                folder_id = self.buscar_carpeta_por_nombre(nombre_cliente, parent_id)
+                if folder_id:
+                    carpetas_clientes[nombre_cliente] = folder_id
+
+        print(f"\n✅ Procesados {len(carpetas_clientes)} clientes")
+        return carpetas_clientes
